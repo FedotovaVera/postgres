@@ -53,6 +53,7 @@ postgres=*# select * from persons;
 | 8 | ivan       | ivanov|
 | 9 | petr       | petrov|
 | 10 | sergey      | sergeev|
+
 После чего завершила транзацию во второй сессии\
 Далее был изменен уровень транзации на Repeatable Read:
 ```
