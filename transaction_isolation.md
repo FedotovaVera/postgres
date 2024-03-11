@@ -37,7 +37,8 @@ INSERT 0 1
 Во второй сессии просмотрела содержание таблицы persons:
 ```
 postgres=# select * from persons;
-| id | first_name | second_name |
+| id | first_name | second_name|
+|-|--------|---|
 | 8 | ivan       | ivanov|
 | 9 | petr       | petrov|
 (2 rows)
