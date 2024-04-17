@@ -62,7 +62,84 @@ CREATE TABLE
 ```
 Добавляю пару строк:
 ```
-
+postgres=# insert into test(id) values (1);
+INSERT 0 1
+postgres=# insert into test(id) values (2);
+INSERT 0 1
+postgres=# insert into test(id) values (3);
+INSERT 0 1
+postgres=# insert into test(id) values (4);
+INSERT 0 1
+postgres=# insert into test(id) values (5);
+INSERT 0 1
 ```
-
-
+Проверяю контейнеры:
+```
+vera@otus-db-pg-vm-1:~$ docker ps -a
+CONTAINER ID   IMAGE         COMMAND                  CREATED          STATUS          PORTS                                                 NAMES
+8475f5d5a0d0   postgres:15   "docker-entrypoint.s…"   20 minutes ago   Up 20 minutes   5432/tcp, 0.0.0.0:5433->5433/tcp, :::5433->5433/tcp   pg-server
+```
+Останавливаю и удаляю контейнер. Проверяю, что удалился:
+```
+vera@otus-db-pg-vm-1:~$ docker ps -a
+CONTAINER ID   IMAGE         COMMAND                  CREATED          STATUS          PORTS                                                 NAMES
+8475f5d5a0d0   postgres:15   "docker-entrypoint.s…"   20 minutes ago   Up 20 minutes   5432/tcp, 0.0.0.0:5433->5433/tcp, :::5433->5433/tcp   pg-server
+vera@otus-db-pg-vm-1:~$ docker stop 8475f5d5a0d0
+8475f5d5a0d0
+vera@otus-db-pg-vm-1:~$ docker rm 8475f5d5a0d0
+8475f5d5a0d0
+vera@otus-db-pg-vm-1:~$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+Создаю заново и пытаюсь подключиться:
+```
+vera@otus-db-pg-vm-1:~$ sudo docker run --name pg-server --network pg-net -e POSTGRES_PASSWORD=postgres -d -p 5433:5433 -v /var/lib/postgres:/var/lib/postgresql/data postgres:15
+f446317cfdeb019618d9e63afb557b845bb95ef3821cd05570d6c620e94fc3a5
+vera@otus-db-pg-vm-1:~$ psql -h localhost -U postgres -d postgres
+Password for user postgres:
+psql: error: connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "postgres"
+connection to server at "localhost" (::1), port 5432 failed: FATAL:  password authentication failed for user "postgres"
+```
+Пробую подключиться к порту 5433:
+```
+@otus-db-pg-vm-1:~$ psql -h localhost -p 5433 -U postgres -d postgres
+Password for user postgres:
+psql (16.2 (Ubuntu 16.2-1.pgdg22.04+1), server 15.6 (Debian 15.6-1.pgdg120+2))
+Type "help" for help.
+```
+Проверяю, что данные на месте:
+```
+                                                      List of databases
+   Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | ICU Locale | ICU Rules |   Access privileges
+-----------+----------+----------+-----------------+------------+------------+------------+-----------+-----------------------
+ otus      | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           |
+ postgres  | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           |
+ template0 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           | =c/postgres          +
+           |          |          |                 |            |            |            |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | en_US.utf8 | en_US.utf8 |            |           | =c/postgres          +
+           |          |          |                 |            |            |            |           | postgres=CTc/postgres
+(4 rows)
+```
+Проверяю, что данные остались:
+```
+postgres=# \c otus
+psql (16.2 (Ubuntu 16.2-1.pgdg22.04+1), server 15.6 (Debian 15.6-1.pgdg120+2))
+You are now connected to database "otus" as user "postgres".
+otus=# select * from test;
+ERROR:  relation "test" does not exist
+LINE 1: select * from test;
+                      ^
+otus=# \c postgres
+psql (16.2 (Ubuntu 16.2-1.pgdg22.04+1), server 15.6 (Debian 15.6-1.pgdg120+2))
+You are now connected to database "postgres" as user "postgres".
+postgres=# select * from test
+postgres-# ;
+ id
+----
+  1
+  2
+  3
+  4
+  5
+(5 rows)
+```
