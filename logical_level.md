@@ -103,3 +103,30 @@ ERROR:  permission denied for schema testnm
 LINE 1: create table testnm.t2(c1 integer);
 ```
 Но права на создание и изменение я не давала. 
+Поэтому я поменяла у поли readonly привелегии, хотя логично исходя из названия создать другую роль (тут у меня вопрос: у одного пользователя может быть несколько ролей одновременно?)
+```
+testdb=# GRANT ALL PRIVILEGES ON testnm TO readonly;
+ERROR:  relation "testnm" does not exist
+testdb=# GRANT ALL ON SCHEMA testnm TO readonly;
+GRANT
+testdb=# \q
+dmitrydergunov95@otus-db-pg-vm-1:~$ psql -h 127.0.0.1 -U testread -d testdb -W
+Password:
+psql (16.2 (Ubuntu 16.2-1.pgdg22.04+1))
+SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off)
+Type "help" for help.
+
+testdb=> create table t3(c1 integer); insert into t2 values (2);
+ERROR:  permission denied for schema public
+LINE 1: create table t3(c1 integer);
+                     ^
+ERROR:  relation "t2" does not exist
+LINE 1: insert into t2 values (2);
+                    ^
+testdb=> create table testnm.t3(c1 integer);
+CREATE TABLE
+
+testdb=> insert into testnm.t3 values (2);
+INSERT 0 1
+```
+теперь т.к. у роли есть все привелегии на схему testnm , то таблица создалась
