@@ -169,4 +169,10 @@ Command 'create' not found, did you mean:
   command 'pcreate' from deb pbuilder-scripts (22)
 Try: apt install <deb name>
 ```
+Патыюсь выполнить команду psql, но снова получаю ошибку: 
+```
+dmitrydergunov95@otus-db-pg-vm-2:/mnt/vdb1$ psql
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+        Is the server running locally and accepting connections on that socket?
+```
 
