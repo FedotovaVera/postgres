@@ -159,4 +159,14 @@ dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mkdir /mnt/vdb1
 dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mount /dev/vdb1 /mnt/vdb1
 dmitrydergunov95@otus-db-pg-vm-1:~$ sudo chmod a+w /mnt/vdb1
 ```
+Пробую создать табличное пространство, но получаю ошибку:
+```
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo su postgres
+postgres@otus-db-pg-vm-1:/home/dmitrydergunov95$ cd /mnt/vdb1
+postgres@otus-db-pg-vm-1:/mnt/vdb1$ mkdir tmptblspc
+postgres@otus-db-pg-vm-1:/mnt/vdb1$ create tablespace my_ts location '/mnt/vdb1/tmptblspc';
+Command 'create' not found, did you mean:
+  command 'pcreate' from deb pbuilder-scripts (22)
+Try: apt install <deb name>
+```
 
