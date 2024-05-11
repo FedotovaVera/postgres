@@ -239,4 +239,4 @@ postgres=# select * from new_table;
  two
 (2 rows)
 ```
-
+Почему у меня нет ошибки?
