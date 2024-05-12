@@ -59,7 +59,4 @@ new_db=*# SELECT pg_backend_pid();
 ```
 |29744 - 1 транзакция|29853 - 2 транзакция|
 |-|--------|
-|Длинная запись в первом столбце|```new_db=# begin;
-BEGIN
-new_db=*# update users set name = 'Lera Murkina' where id = 2;
-UPDATE 1```|
+|Длинная запись в первом столбце|```new_db=# begin; BEGIN new_db=*# update users set name = 'Lera Murkina' where id = 2; UPDATE 1```|
