@@ -173,3 +173,47 @@ RowExclusiveLock - блокировку в этом режиме получае�
 Первая транзакция получала блокировку с типом relation в режиме RowExclusiveLock, т.к. мы меняли данные в таблице.
 А вторая и третья транзации заблокированы и есть строки с типом tuple и ExclusiveLock.
 
+Для завершения ожидания, я сначала завершила первую транзацию, затем вторую и следом третью. 
+
+Что бы выпонить взаимоблокировку, я пробую выполнить команды update по очереди в первой транзации, второй, третьей, первой, второй, третьей. На втором круге и второй транзации получаю ошибку:
+```
+ERROR:  deadlock detected
+DETAIL:  Process 32092 waits for ExclusiveLock on tuple (0,12) of relation 16419 of database 16413; blocked by process 32105.
+Process 32105 waits for ShareLock on transaction 2349849; blocked by process 32080.
+Process 32080 waits for ShareLock on transaction 2349850; blocked by process 32092.
+HINT:  See server log for query details.
+```
+Смотрю лог:
+```
+postgres@otus-db-pg-vm-1:~$ tail -n 30 /var/log/postgresql/postgresql-16-main.log
+2024-05-12 14:35:23.031 UTC [29744] postgres@new_db FATAL:  terminating connection due to administrator command
+2024-05-12 14:37:50.176 UTC [29682] LOG:  checkpoint starting: time
+2024-05-12 14:37:50.288 UTC [29682] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.103 s, sync=0.003 s, total=0.113 s; sync files=2, longest=0.002 s, average=0.002 s; distance=0 kB, estimate=1661 kB; lsn=0/6F4D46E0, redo lsn=0/6F4D46A8
+2024-05-12 14:38:20.295 UTC [29682] LOG:  checkpoint starting: time
+2024-05-12 14:38:20.418 UTC [29682] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.105 s, sync=0.005 s, total=0.123 s; sync files=2, longest=0.004 s, average=0.003 s; distance=1 kB, estimate=1495 kB; lsn=0/6F4D4B20, redo lsn=0/6F4D4AE0
+2024-05-12 14:38:27.020 UTC [32105] postgres@new_db LOG:  process 32105 still waiting for ShareLock on transaction 2349849 after 200.062 ms
+2024-05-12 14:38:27.020 UTC [32105] postgres@new_db DETAIL:  Process holding the lock: 32080. Wait queue: 32105.
+2024-05-12 14:38:27.020 UTC [32105] postgres@new_db CONTEXT:  while updating tuple (0,12) in relation "users"
+2024-05-12 14:38:27.020 UTC [32105] postgres@new_db STATEMENT:  update users set name = 'Vera Murl' where id = 1;
+2024-05-12 14:38:31.875 UTC [32080] postgres@new_db LOG:  process 32080 still waiting for ShareLock on transaction 2349850 after 200.100 ms
+2024-05-12 14:38:31.875 UTC [32080] postgres@new_db DETAIL:  Process holding the lock: 32092. Wait queue: 32080.
+2024-05-12 14:38:31.875 UTC [32080] postgres@new_db CONTEXT:  while updating tuple (0,11) in relation "users"
+2024-05-12 14:38:31.875 UTC [32080] postgres@new_db STATEMENT:  update users set name = 'Vera Mur' where id = 2;
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db LOG:  process 32092 detected deadlock while waiting for ExclusiveLock on tuple (0,12) of relation 16419 of database 16413 after 200.109 ms
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db DETAIL:  Process holding the lock: 32105. Wait queue: .
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db STATEMENT:  update users set name = 'Vera Mur' where id = 1;
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db ERROR:  deadlock detected
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db DETAIL:  Process 32092 waits for ExclusiveLock on tuple (0,12) of relation 16419 of database 16413; blocked by process 32105.
+        Process 32105 waits for ShareLock on transaction 2349849; blocked by process 32080.
+        Process 32080 waits for ShareLock on transaction 2349850; blocked by process 32092.
+        Process 32092: update users set name = 'Vera Mur' where id = 1;
+        Process 32105: update users set name = 'Vera Murl' where id = 1;
+        Process 32080: update users set name = 'Vera Mur' where id = 2;
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db HINT:  See server log for query details.
+2024-05-12 14:38:37.316 UTC [32092] postgres@new_db STATEMENT:  update users set name = 'Vera Mur' where id = 1;
+2024-05-12 14:38:37.316 UTC [32080] postgres@new_db LOG:  process 32080 acquired ShareLock on transaction 2349850 after 5641.171 ms
+2024-05-12 14:38:37.316 UTC [32080] postgres@new_db CONTEXT:  while updating tuple (0,11) in relation "users"
+2024-05-12 14:38:37.316 UTC [32080] postgres@new_db STATEMENT:  update users set name = 'Vera Mur' where id = 2;
+2024-05-12 14:38:50.448 UTC [29682] LOG:  checkpoint starting: time
+2024-05-12 14:38:50.565 UTC [29682] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.102 s, sync=0.004 s, total=0.118 s; sync files=2, longest=0.002 s, average=0.002 s; distance=1 kB, estimate=1345 kB; lsn=0/6F4D4F90, redo lsn=0/6F4D4F50
+```
