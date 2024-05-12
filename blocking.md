@@ -57,6 +57,27 @@ new_db=*# SELECT pg_backend_pid();
           29853
 (1 row)
 ```
-|29744 - 1 транзакция|29853 - 2 транзакция|
-|-|--------|
-|Длинная запись в первом столбце|```new_db=# ``` <br> ``` begin; ``` <br>  ``` BEGIN new_db=*# update users set name = 'Lera Murkina' where id = 2; ``` <br> ```  UPDATE 1```|
+29853 - 2 транзакция:
+```
+postgres=# \c new_db
+You are now connected to database "new_db" as user "postgres".
+new_db=# begin;
+BEGIN
+new_db=*# update users set name = 'Lera Murkina' where id = 2;
+UPDATE 1
+```
+29744 - 1 транзакция:
+```
+new_db=*# select locktype, pid, relation::regclass, virtualxid as virtxid,
+new_db-*#        transactionid as xid, mode, granted
+new_db-*# from pg_locks ;
+   locktype    |  pid  | relation | virtxid |   xid   |       mode       | granted
+---------------+-------+----------+---------+---------+------------------+---------
+ relation      | 29853 | users    |         |         | RowExclusiveLock | t
+ virtualxid    | 29853 |          | 5/4     |         | ExclusiveLock    | t
+ relation      | 29744 | users    |         |         | AccessShareLock  | t
+ relation      | 29744 | pg_locks |         |         | AccessShareLock  | t
+ virtualxid    | 29744 |          | 4/22    |         | ExclusiveLock    | t
+ transactionid | 29853 |          |         | 2349839 | ExclusiveLock    | t
+(6 rows)
+```
