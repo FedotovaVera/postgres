@@ -285,3 +285,106 @@ postgres=# show data_checksums;
  on
 (1 row)
 ```
+Создаю таблицу, заполняю данными:
+```
+postgres=# create table new_table (id text);
+CREATE TABLE
+postgres=# insert into new_table values('one');
+INSERT 0 1
+postgres=# insert into new_table values('two');
+INSERT 0 1
+postgres=# select pg_relation_filepath('new_table');
+ pg_relation_filepath
+----------------------
+ base/5/16388
+(1 row)
+```
+Останавливаю:
+```
+dmitrydergunov95@test-vm:~$ sudo service postgresql stop
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 down   postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 down   postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo dd if=/dev/zero of=/var/lib/postgresql/15/second_cluster/base/5/16388 oflag=dsync conv=notrunc bs=1 count=16
+16+0 records in
+16+0 records out
+16 bytes copied, 0.0393849 s, 0.4 kB/s
+dmitrydergunov95@test-vm:~$ sudo service postgresql start
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 online postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 online postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo su postgres
+postgres@test-vm:/home/dmitrydergunov95$ psql -p 5433
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from new_table;
+ id
+-----
+ one
+ two
+(2 rows)
+
+postgres=# show data_checksums;
+ data_checksums
+----------------
+ on
+(1 row)
+
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ off
+(1 row)
+```
+Снова не получаю ошибку. Пересмотрела и поняла, что неверно указала кластер. Пробую еще раз:
+```
+dmitrydergunov95@test-vm:~$ sudo service postgresql stop
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 down   postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 down   postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo dd if=/dev/zero of=/var/lib/postgresql/15/second_cluster/base/5/16388 oflag=dsync conv=notrunc bs=1 count=16
+16+0 records in
+16+0 records out
+16 bytes copied, 0.0182047 s, 0.9 kB/s
+dmitrydergunov95@test-vm:~$ sudo service postgresql start
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 online postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 online postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo su postgres
+postgres@test-vm:/home/dmitrydergunov95$ psql -p 5434
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5434" failed: No such file or directory
+        Is the server running locally and accepting connections on that socket?
+postgres@test-vm:/home/dmitrydergunov95$ psql -p 5433
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from new_table;
+ERROR:  invalid page in block 0 of relation base/5/16388
+```
+Ура!)
+При попытке восстановить страницы после повреждения иногда нужно обойти защиту, обеспечиваемую контрольными суммами. Для этого можно временно установить параметр конфигурации ignore_checksum_failure.
+Пробую:
+```
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ off
+(1 row)
+
+postgres=# set ignore_checksum_failure = on;
+SET
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ on
+(1 row)
+
+postgres=# select * from new_table;
+ERROR:  invalid page in block 0 of relation base/5/16388
+```
+Поможет только бэкап? Или я что то сделала не так?
