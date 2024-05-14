@@ -240,3 +240,48 @@ postgres=# select * from new_table;
 (2 rows)
 ```
 Почему у меня нет ошибки?
+
+
+***Попытка номер 2:***
+Создаю новый кластер, проверяю статус data_checksums, включаю data_checksums и запускаю кластер, подключаюсь к нему, проверяю:
+```
+postgres=# show data_checksums;
+ data_checksums
+----------------
+ off
+(1 row)
+
+postgres=# \q
+postgres@test-vm:/home/dmitrydergunov95$ exit
+exit
+dmitrydergunov95@test-vm:~$ sudo pg_ctlcluster 15 second_cluster stop
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 online postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 down   postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo su postgres
+postgres@test-vm:/home/dmitrydergunov95$ /usr/lib/postgresql/15/bin/pg_checksums --enable /var/lib/postgresql/15/second_cluster
+Checksum operation completed
+Files scanned:   946
+Blocks scanned:  2807
+Files written:  778
+Blocks written: 2807
+pg_checksums: syncing data directory
+pg_checksums: updating control file
+Checksums enabled in cluster
+dmitrydergunov95@test-vm:~$ sudo pg_ctlcluster 15 second_cluster start
+dmitrydergunov95@test-vm:~$ pg_lsclusters
+Ver Cluster        Port Status Owner    Data directory                        Log file
+15  main           5432 online postgres /var/lib/postgresql/15/main           /var/log/postgresql/postgresql-15-main.log
+15  second_cluster 5433 online postgres /var/lib/postgresql/15/second_cluster /var/log/postgresql/postgresql-15-second_cluster.log
+dmitrydergunov95@test-vm:~$ sudo su postgres
+postgres@test-vm:/home/dmitrydergunov95$ psql -p 5433
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# show data_checksums;
+ data_checksums
+----------------
+ on
+(1 row)
+```
