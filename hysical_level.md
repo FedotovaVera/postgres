@@ -1342,3 +1342,4 @@ dmitrydergunov95@test-vm:~$ ls /mnt/vdb1
 dmitrydergunov95@test-vm:~$ ls /var/lib/postgresql/15
 main
 ```
+Если я правильно поняла - у меня не скопировались данные. и поэтому кластер не может стартовать. Что я сделала не так?
