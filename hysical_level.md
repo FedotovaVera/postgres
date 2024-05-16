@@ -27,8 +27,8 @@ vera@DESKTOP-Q6JLRHI:~$ yc compute disk list
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
 |          ID          |   NAME   |    SIZE     |     ZONE      | STATUS |     INSTANCE IDS     | PLACEMENT GROUP |       DESCRIPTION       |
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
-| fhmqgfcsvgih9fij333v |          | 21474836480 | ru-central1-a | READY  | fhmmsrusraph0ei5qui9 |                 |                         |
-| fhmusodl566gslduqfui | new-disk |  5368709120 | ru-central1-a | READY  |                      |                 | second disk for otus-vm |
+| fhm7k24ffqdlfha6oasr | new-disk |  5368709120 | ru-central1-a | READY  |                      |                 | second disk for otus-vm |
+| fhmusm9m6cmokl597nna |          | 21474836480 | ru-central1-a | READY  | fhma79ff5l089bmha17s |                 |                         |
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
 ```
 
@@ -38,11 +38,11 @@ vera@DESKTOP-Q6JLRHI:~$ yc compute instance attach-disk otus-db-pg-vm-1 \
 >     --disk-name new-disk \
 >     --mode rw \
 >     --auto-delete
-done (10s)
-id: fhmmsrusraph0ei5qui9
+done (11s)
+id: fhma79ff5l089bmha17s
 folder_id: b1gaaj0i5bs0h43veitl
-created_at: "2024-04-26T19:50:36Z"
-name: otus-db-pg-vm-1
+created_at: "2024-05-16T17:45:36Z"
+name: test-vm
 zone_id: ru-central1-a
 platform_id: standard-v3
 resources:
@@ -57,29 +57,29 @@ metadata_options:
   aws_v1_http_token: DISABLED
 boot_disk:
   mode: READ_WRITE
-  device_name: fhmqgfcsvgih9fij333v
+  device_name: fhmusm9m6cmokl597nna
   auto_delete: true
-  disk_id: fhmqgfcsvgih9fij333v
+  disk_id: fhmusm9m6cmokl597nna
 secondary_disks:
   - mode: READ_WRITE
-    device_name: fhmusodl566gslduqfui
+    device_name: fhm7k24ffqdlfha6oasr
     auto_delete: true
-    disk_id: fhmusodl566gslduqfui
+    disk_id: fhm7k24ffqdlfha6oasr
 network_interfaces:
   - index: "0"
-    mac_address: d0:0d:16:e6:fd:cd
+    mac_address: d0:0d:a3:a5:ef:2d
     subnet_id: e9b09tsm3ilc707agsen
     primary_v4_address:
-      address: 10.128.0.26
+      address: 10.128.0.19
       one_to_one_nat:
-        address: 62.84.125.252
+        address: 51.250.87.207
         ip_version: IPV4
     security_group_ids:
       - enpebhgrlav2rjpjhick
 serial_port_settings:
   ssh_authorization: INSTANCE_METADATA
 gpu_settings: {}
-fqdn: otus-db-pg-vm-1.ru-central1.internal
+fqdn: test-vm.ru-central1.internal
 scheduling_policy: {}
 network_settings:
   type: STANDARD
@@ -93,8 +93,8 @@ vera@DESKTOP-Q6JLRHI:~$ yc compute disk list
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
 |          ID          |   NAME   |    SIZE     |     ZONE      | STATUS |     INSTANCE IDS     | PLACEMENT GROUP |       DESCRIPTION       |
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
-| fhmqgfcsvgih9fij333v |          | 21474836480 | ru-central1-a | READY  | fhmmsrusraph0ei5qui9 |                 |                         |
-| fhmusodl566gslduqfui | new-disk |  5368709120 | ru-central1-a | READY  | fhmmsrusraph0ei5qui9 |                 | second disk for otus-vm |
+| fhm7k24ffqdlfha6oasr | new-disk |  5368709120 | ru-central1-a | READY  | fhma79ff5l089bmha17s |                 | second disk for otus-vm |
+| fhmusm9m6cmokl597nna |          | 21474836480 | ru-central1-a | READY  | fhma79ff5l089bmha17s |                 |                         |
 +----------------------+----------+-------------+---------------+--------+----------------------+-----------------+-------------------------+
 ```
 Создаю раздел и проверяю: 
@@ -106,7 +106,7 @@ Changes will remain in memory only, until you decide to write them.
 Be careful before using the write command.
 
 Device does not contain a recognized partition table.
-Created a new DOS disklabel with disk identifier 0xe2f5ab61.
+Created a new DOS disklabel with disk identifier 0x3a86b08b.
 
 Command (m for help): n
 Partition type
@@ -125,7 +125,7 @@ Units: sectors of 1 * 512 = 512 bytes
 Sector size (logical/physical): 512 bytes / 4096 bytes
 I/O size (minimum/optimal): 4096 bytes / 4096 bytes
 Disklabel type: dos
-Disk identifier: 0xe2f5ab61
+Disk identifier: 0x3a86b08b
 
 Device     Boot Start      End  Sectors Size Id Type
 /dev/vdb1        2048 10485759 10483712   5G 83 Linux
@@ -136,17 +136,16 @@ Calling ioctl() to re-read partition table.
 Syncing disks.
 
 dmitrydergunov95@otus-db-pg-vm-1:~$ w
- 21:11:37 up  1:20,  2 users,  load average: 0.00, 0.00, 0.00
+ 18:18:03 up 31 min,  1 user,  load average: 0.00, 0.00, 0.02
 USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
-dmitryde pts/0    87.117.185.149   20:07   47:56   0.04s  0.04s -bash
-dmitryde pts/1    87.117.185.149   21:08    1.00s  0.01s  0.00s w
+dmitryde pts/0    87.117.189.48    18:14    0.00s  0.02s  0.00s w
 ```
 Форматирую диск, монтирую раздел и меняю права - даю разрешение на запись всем пользователям:
 ```
 dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mkfs.ext4 /dev/vdb1
 mke2fs 1.46.5 (30-Dec-2021)
 Creating filesystem with 1310464 4k blocks and 327680 inodes
-Filesystem UUID: c60293a2-cb41-495e-8abd-29c4c6e33b39
+Filesystem UUID: ce2d4706-aeb7-4737-9fed-8ee6b2ad8cb2
 Superblock backups stored on blocks:
         32768, 98304, 163840, 229376, 294912, 819200, 884736
 
@@ -169,10 +168,23 @@ Command 'create' not found, did you mean:
   command 'pcreate' from deb pbuilder-scripts (22)
 Try: apt install <deb name>
 ```
-Патыюсь выполнить команду psql, но снова получаю ошибку: 
+Вышла и подняла кластер. Зашла снова и выполняю команду:
 ```
-dmitrydergunov95@otus-db-pg-vm-2:/mnt/vdb1$ psql
-psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
-        Is the server running locally and accepting connections on that socket?
-```
+dmitrydergunov95@test-vm:~$ sudo su postgres
+postgres@test-vm:/home/dmitrydergunov95$ cd /mnt/vdb1
+postgres@test-vm:/mnt/vdb1$ psql
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
 
+postgres=# create tablespace my_ts location '/mnt/vdb1/tmptblspc';
+CREATE TABLESPACE
+postgres=# \db
+             List of tablespaces
+    Name    |  Owner   |      Location
+------------+----------+---------------------
+ my_ts      | postgres | /mnt/vdb1/tmptblspc
+ pg_default | postgres |
+ pg_global  | postgres |
+(3 rows)
+dmitrydergunov95@test-vm:~$ sudo chown postgres:postgres /mnt/vdb1
+```
