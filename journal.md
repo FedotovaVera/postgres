@@ -388,3 +388,52 @@ postgres=# select * from new_table;
 ERROR:  invalid page in block 0 of relation base/5/16388
 ```
 Поможет только бэкап? Или я что то сделала не так?
+**Попытка 3**
+```
+postgres=# select pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+(1 row)
+
+postgres=# show data_checksums;
+ data_checksums
+----------------
+ on
+(1 row)
+
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ on
+(1 row)
+
+postgres=# select * from new_table;
+ERROR:  invalid page in block 0 of relation base/5/16393
+```
+Или перезапустить кластер:
+```
+dmitrydergunov95@test:~$ sudo pg_ctlcluster 15 second_cluster stop
+dmitrydergunov95@test:~$ sudo pg_ctlcluster 15 second_cluster start
+dmitrydergunov95@test:~$ sudo su postgres
+postgres@test:/home/dmitrydergunov95$ psql -p 5433
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from new_table;
+ERROR:  invalid page in block 0 of relation base/5/16393
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ off
+(1 row)
+
+postgres=# show data_checksums;
+ data_checksums
+----------------
+ on
+(1 row)
+postgres=# select * from new_table;
+ERROR:  invalid page in block 0 of relation base/5/16393
+```
+
