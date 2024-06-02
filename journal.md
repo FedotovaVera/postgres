@@ -388,6 +388,8 @@ postgres=# select * from new_table;
 ERROR:  invalid page in block 0 of relation base/5/16388
 ```
 Поможет только бэкап? Или я что то сделала не так?
+
+
 **Попытка 3**
 ```
 postgres=# select pg_reload_conf();
