@@ -1343,3 +1343,97 @@ dmitrydergunov95@test-vm:~$ ls /var/lib/postgresql/15
 main
 ```
 Если я правильно поняла - у меня не скопировались данные. и поэтому кластер не может стартовать. Что я сделала не так?
+**Новая попытка**
+```
+dmitrydergunov95@otus-db-pg-vm-1:~$ lsblk
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+loop0    7:0    0    87M  1 loop /snap/lxd/28373
+loop1    7:1    0 111.9M  1 loop /snap/lxd/24322
+loop2    7:2    0  63.3M  1 loop /snap/core20/1822
+loop3    7:3    0  63.9M  1 loop /snap/core20/2318
+loop4    7:4    0  38.7M  1 loop /snap/snapd/21465
+loop5    7:5    0  38.8M  1 loop /snap/snapd/21759
+vda    252:0    0    20G  0 disk
+├─vda1 252:1    0     1M  0 part
+└─vda2 252:2    0    20G  0 part /
+vdb    252:16   0    10G  0 disk
+└─vdb1 252:17   0     5G  0 part
+dmitrydergunov95@otus-db-pg-vm-1:~$ lsblk --fs
+NAME   FSTYPE   FSVER LABEL UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+loop0  squashfs 4.0                                                    0   100% /snap/lxd/28373
+loop1  squashfs 4.0                                                    0   100% /snap/lxd/24322
+loop2  squashfs 4.0                                                    0   100% /snap/core20/1822
+loop3  squashfs 4.0                                                    0   100% /snap/core20/2318
+loop4  squashfs 4.0                                                    0   100% /snap/snapd/21465
+loop5  squashfs 4.0                                                    0   100% /snap/snapd/21759
+vda
+├─vda1
+└─vda2 ext4     1.0         ed465c6e-049a-41c6-8e0b-c8da348a3577   14.5G    22% /
+vdb
+└─vdb1 ext4     1.0         4133f77e-96f4-4d1c-9549-3766d2e1a498
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mkdir -p /mnt//mnt/vdb1
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mount -o defaults /dev/vdb1 /mnt/vdb1
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo chmod a+w /mnt/vdb1
+dmitrydergunov95@otus-db-pg-vm-1:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           197M  1.1M  196M   1% /run
+/dev/vda2        20G  4.3G   15G  23% /
+tmpfs           982M     0  982M   0% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+tmpfs           197M  4.0K  197M   1% /run/user/748239047
+/dev/vdb1       4.9G   39M  4.6G   1% /mnt/vdb1
+dmitrydergunov95@otus-db-pg-vm-1:~$ cat /etc/fstab
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/vda2 during curtin installation
+/dev/disk/by-uuid/ed465c6e-049a-41c6-8e0b-c8da348a3577 / ext4 defaults 0 1
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo mount -a
+dmitrydergunov95@otus-db-pg-vm-1:~$ lsblk -fs
+NAME  FSTYPE   FSVER LABEL UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+loop0 squashfs 4.0                                                    0   100% /snap/lxd/28373
+loop1 squashfs 4.0                                                    0   100% /snap/lxd/24322
+loop2 squashfs 4.0                                                    0   100% /snap/core20/1822
+loop3 squashfs 4.0                                                    0   100% /snap/core20/2318
+loop4 squashfs 4.0                                                    0   100% /snap/snapd/21465
+loop5 squashfs 4.0                                                    0   100% /snap/snapd/21759
+vda1
+└─vda
+vda2  ext4     1.0         ed465c6e-049a-41c6-8e0b-c8da348a3577   14.5G    22% /
+└─vda
+vdb1  ext4     1.0         4133f77e-96f4-4d1c-9549-3766d2e1a498    4.5G     1% /mnt/vdb1
+└─vdb
+dmitrydergunov95@otus-db-pg-vm-1:~$ df -h -x tmpfs -x devtmpfs
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda2        20G  4.3G   15G  23% /
+/dev/vdb1       4.9G   39M  4.6G   1% /mnt/vdb1
+dmitrydergunov95@otus-db-pg-vm-1:~$ ls -l /mnt/vdb1
+total 24
+drwxr-xr-x 3 postgres postgres  4096 Jun  2 10:09 15
+drwx------ 2 root     root     16384 Jun  2 10:19 lost+found
+drwx------ 3 postgres postgres  4096 Jun  2 10:23 tmptblspc
+
+dmitrydergunov95@otus-db-pg-vm-1:~$ pg_lsclusters
+Ver Cluster Port Status Owner    Data directory    Log file
+15  main    5432 down   postgres /mnt/vdb1/15/main /var/log/postgresql/postgresql-15-main.log
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo pg_ctlcluster 15 main start
+dmitrydergunov95@otus-db-pg-vm-1:~$ pg_lsclusters
+Ver Cluster Port Status Owner    Data directory    Log file
+15  main    5432 online postgres /mnt/vdb1/15/main /var/log/postgresql/postgresql-15-main.log
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo -u postgres psql
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
+
+postgres=# select * from test;
+ id
+----
+  1
+  2
+  3
+(3 rows)
+
+```
