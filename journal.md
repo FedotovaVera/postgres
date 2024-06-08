@@ -438,4 +438,34 @@ postgres=# show data_checksums;
 postgres=# select * from new_table;
 ERROR:  invalid page in block 0 of relation base/5/16393
 ```
+**Попытка номер .. последняя :) **
+```
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo dd if=/dev/zero of=/var/lib/postgresql/15/second_cluster/base/5/16384 oflag=dsync conv=notrunc bs=1 count=5
+5+0 records in
+5+0 records out
+5 bytes copied, 0.00347727 s, 1.4 kB/s
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo service postgresql start
+dmitrydergunov95@otus-db-pg-vm-1:~$ sudo su postgres
+postgres@otus-db-pg-vm-1:/home/dmitrydergunov95$ psql -p 5433
+psql (15.7 (Ubuntu 15.7-1.pgdg22.04+1))
+Type "help" for help.
 
+postgres=# select * from new_table;
+WARNING:  page verification failed, calculated checksum 26469 but expected 40309
+ERROR:  invalid page in block 0 of relation base/5/16384
+postgres=# show ignore_checksum_failure;
+ ignore_checksum_failure
+-------------------------
+ off
+(1 row)
+
+postgres=# set ignore_checksum_failure = on;
+SET
+postgres=# select * from new_table;
+WARNING:  page verification failed, calculated checksum 26469 but expected 40309
+ id
+-----
+ one
+ two
+(2 rows)
+```
