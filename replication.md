@@ -131,3 +131,34 @@ postgres=# select * from test;
  111
 (3 rows)
 ```
+***Третья ВМ***
+```
+postgres=# create subscription test_sub3to1 connection 'host=replication-vn-1 port=5432 user=postgres password=postgres dbname=postgres' publication test_pub;
+ERROR:  relation "public.test" does not exist
+postgres=# create table test  (i int);
+CREATE TABLE
+postgres=# create table test2  (i int);
+CREATE TABLE
+postgres=# create subscription test_sub3to1 connection 'host=replication-vn-1 port=5432 user=postgres password=postgres dbname=postgres' publication test_pub;
+NOTICE:  created replication slot "test_sub3to1" on publisher
+CREATE SUBSCRIPTION
+postgres=# create subscription test_sub3to2 connection 'host=replication-vn-2 port=5432 user=postgres password=postgres dbname=postgres' publication test_pub;
+NOTICE:  created replication slot "test_sub3to2" on publisher
+CREATE SUBSCRIPTION
+postgres=# select * from test;
+  i
+------
+    1
+   11
+  111
+ 1111
+(4 rows)
+
+postgres=# select * from test2;
+  i
+-----
+   2
+  22
+ 222
+(3 rows)
+```
